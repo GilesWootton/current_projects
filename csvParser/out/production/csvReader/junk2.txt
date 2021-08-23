@@ -1,0 +1,1247 @@
+import java.sql.*;
+
+public class Program
+{
+    String saveFolder;
+    String databaseURL;
+    String[] databasesAvailble;
+    String delimeter;
+    String username;
+    String password;
+
+    Table tab;
+
+    public Program()
+    {
+        databaseURL = "jdbc:mysql://localhost:3306/mydb";
+        delimeter = ",";
+        String username = "root";
+        String password = "SPIC3Ysausage";
+    }
+
+    void OpenFile(String fileName)
+    {
+        tab = new Table();
+        tab.readFile(fileName, delimeter);
+    }
+
+    void save()
+    {
+
+    }
+
+    void upload(String address)
+    {
+        databaseURL = address;
+        username = "root";
+        password = "SPIC3Ysausage";
+        Connection connection = null;
+        try
+        {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(databaseURL, username, password);
+            connection.setAutoCommit(false);
+
+            tab.uploadData(connection);
+
+            connection.commit();
+            connection.close();
+
+        } catch (SQLException throwables)
+        {
+            throwables.printStackTrace();
+        } catch (ClassNotFoundException classNotFoundException)
+        {
+            classNotFoundException.printStackTrace();
+        }
+
+    }
+    public void download()
+    {
+
+    }
+
+    void setDelim(String delim)
+    {
+        this.delimeter = delim;
+    }
+}
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Scanner;
+import java.util.Vector;
+
+
+enum DataTypes
+{
+    INT("INT"),
+    DOUBLE("DOUBLE"),
+    STRING ("VARCHAR(255)");
+    String dataTypeName;
+
+    DataTypes(String s)
+    {
+        dataTypeName = s;
+    }
+};
+
+public class Table
+{
+    String tableName = "";
+    Vector<Vector<String>> data = new Vector<Vector<String>>();
+    Vector<String> headers = new Vector<String>();
+    ArrayList<DataTypes> dataTypeArray = new ArrayList<>();
+
+    /**********************************************************************
+     * readFile
+     * reads csv file into "data" vector inside object
+     * @param path         file path for csv input file
+     *********************************************************************/
+
+    public void readFile(String path, String delim)
+    {
+        String line = "";
+        Scanner sc = null;
+        File inFile = null;
+        int index = 0;
+
+        try
+        {
+            inFile = new File(path);
+            sc = new Scanner(inFile, findCharSet(inFile));
+        }
+        catch (FileNotFoundException e)
+        {
+            System.out.println("file not found");
+            e.printStackTrace();
+        }
+
+        this.tableName = inFile.getName();
+        this.tableName = this.tableName.replaceAll("(?<!^)[.].*", ""); // remove extension for table name
+
+        while (sc.hasNextLine())   //populate data
+        {
+            line = sc.nextLine();
+            String[] strArr = line.split( delim + "(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1); // separating commas only
+
+            for(int x =0; x < strArr.length; x++)
+            {
+                System.out.print(" " + "\"" + strArr[x] + "\"" );
+            }
+
+            System.out.println();
+            strArr = removeSpacesNum(strArr);
+            data.add(new Vector<>());
+            data.get(index).addAll(Arrays.asList(strArr));
+            index++;
+        }
+
+        this.populateDataTypes();
+        this.populateHeaders();
+    }
+
+    /****************************************************************************
+     * removeSpacesNums
+     * removes spaces and " from numbers currently stored as a string
+     * @param strArr      Array of string containing mixture of numbers and words
+     * @return strArr     Array with spaces and " removed from numbers
+     ****************************************************************************/
+    public String[] removeSpacesNum(String[] strArr)
+    {
+        for (int x = 0; x < strArr.length; x++)
+        {
+            //   System.out.println("remove space ");
+            if ( (!strArr[x].matches(".*[A-Za-z].*"))) // doesn't contain any letters .: probably number
+            {
+                strArr[x] = strArr[x].replace("^0-9.", ""); ///changed this
+           //     System.out.println("remove space = " + strArr[x]);
+            }
+        }
+        return strArr;
+    }
+
+    /**************************************************************************
+     * findCharSet
+     * Find encoding for csv file. I don't like this and it needs work... but works...
+     * @param inFile                open inFile
+     * @return string with encoding type
+     **************************************************************************/
+
+    public String findCharSet(File inFile)
+    {
+        Scanner sc = null;
+        String[] charSetTypes = new String[]{"US-ASCII", "UTF-8", "CP1252", "UTF-16", "CP1252", "US-ASCII"};
+        String charSet = "CP1252";
+
+        for (int x = 0; x < charSetTypes.length; x++)
+        {
+            sc = findCharSetHelper(inFile, charSetTypes[x]);
+            if (sc != null)
+            {
+                if (sc.hasNextLine())
+                {
+                    charSet = charSetTypes[x];
+                //    System.out.println(charSet);
+                    break;
+                }
+            }
+        }
+
+        return charSet;
+    }
+
+    /**************************************************************************
+     * findCharSetHelper
+     * To avoid try block
+     * @param inFile                open inFile
+     * @return string with encoding type
+     **************************************************************************/
+    Scanner findCharSetHelper(File inFile, String charSet)
+    {
+        Scanner sc = null;
+        try
+        {
+            sc = new Scanner(inFile, charSet);
+            sc.hasNextLine();
+        } catch (FileNotFoundException e)
+        {
+        //    System.out.println("helper error");
+            //      e.printStackTrace();
+            return null;
+        }
+        return sc;
+    }
+
+    /*********************************************************
+     * printName
+     * prints filename for testing purposes
+     **********************************************************/
+    public void printName()
+    {
+     //   System.out.println("print name :" + tableName);
+    }
+
+    /*********************************************************
+     * printData
+     * prints data for testing purposes
+     **********************************************************/
+    public void printData()
+    {
+        System.out.println(this.tableName);
+
+        for (int y = 0; y < data.size(); y++)
+        {
+            for (int x = 0; x < data.get(y).size(); x++)
+            {
+                System.out.print(data.get(y).get(x) + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    /***************************************************************************
+     * uploadToServer
+     * uploads csv as table in mySql database;
+     *
+     ****************************************************************************/
+    public void uploadData(Connection connection)
+    {
+        PreparedStatement insertStatement = null;
+        Statement createStatement = null;
+
+        try
+        {
+            createStatement = connection.createStatement();
+            createStatement.executeUpdate(this.getSQLCreateString());
+
+            for (int y = 0; y < data.size(); y++)                           //insert data into mySql prepared statement.
+            {
+                try
+                {
+                    insertStatement = connection.prepareStatement(getSQLInsertString());
+                } catch (SQLException throwables)
+                {
+                    throwables.printStackTrace();
+                }
+
+                for (int x = 0; x < data.get(y).size(); x++)
+                {
+                    try
+                    {
+                        switch (dataTypeArray.get(x))                                  // convert to correct dataType
+                        {
+                            case INT:
+                                //     System.out.println("To int " + data.get(y).get(x));
+                                insertStatement.setInt(x + 1, Integer.parseInt(data.get(y).get(x)));
+                                break;
+                            case DOUBLE:
+                                //    System.out.println("To double " + data.get(y).get(x));
+                                insertStatement.setDouble(x + 1, Double.parseDouble(data.get(y).get(x)));
+                                break;
+                            case STRING:
+                                //   System.out.println("To string" + data.get(y).get(x));
+                                insertStatement.setString(x + 1, data.get(y).get(x));
+                                break;
+                        }
+                    } catch (Exception e)
+                    {
+                        insertStatement.setNull(x + 1, Types.NULL);
+                    }
+
+                }
+                //    System.out.println(insertStatement.toString());
+
+                insertStatement.addBatch();
+                insertStatement.executeBatch();
+
+
+            }
+        } catch (SQLException throwables)
+        {
+            throwables.printStackTrace();
+        }
+    }
+    public void populateHeaders()
+    {
+        char ch = 'A';
+        if (this.checkForHeader())
+        {
+            for (int x = 0; x < data.get(0).size(); x++)
+            {
+                data.get(0).set(x, data.get(0).get(x).replaceAll("[^0-9,a-z,A-Z$_]", "_")); // Only valid characters for column name.
+                headers.add(data.get(0).get(x));
+            }
+            data.remove(0);
+
+        }
+        else
+        {
+            for (int x = 0; x < data.get(0).size(); x++)
+            {
+                headers.add(Character.toString(ch));
+                ch++;
+            }
+        }
+    }
+
+    public boolean checkForHeader()
+    {
+        boolean header = false;
+        for (int x = 0; x < data.get(0).get(x).length(); x++)
+        {
+            if (calcDT(data.get(0).get(x)) != this.dataTypeArray.get(x))
+            {
+                header = true;
+                break;
+            }
+        }
+        return header;
+    }
+
+
+    void populateDataTypes()
+    {
+        for (int x = 0; x < data.get(1).size(); x++)
+        {
+            this.dataTypeArray.add(calcDT(data.get(1).get(x)));
+        }
+    }
+
+
+    DataTypes calcDT(String str)
+    {
+        DataTypes result = DataTypes.STRING;
+
+        if (str.matches("-?\\d+?")) // is int (I hate regex)
+        {
+            result = DataTypes.INT;
+        } else if (str.matches("-?\\d+(\\.\\d+)?")) // is double
+        {
+            result = DataTypes.DOUBLE;
+        } else if (str.length() == 1) // char
+        {
+            result = DataTypes.STRING;
+        } else //string
+        {
+            result = DataTypes.STRING;
+        }
+
+        return result;
+    }
+
+
+    /*************************************************************************
+     * strB.append("INSERT INTO username (Username, _Identifier, First_name, Last_name) VALUES (?,?,?,?);");
+     * @return
+     *******************************************************************************************************/
+    public String getSQLInsertString()
+    {
+        StringBuilder strB = new StringBuilder();
+
+        strB.append("INSERT INTO " + this.tableName + " (`");
+
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append(headers.get(x));
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append("` , `");
+            }
+        }
+
+        strB.append("` ) VALUES (");
+
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append("?");
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            }
+        }
+        strB.append(");\n");
+
+      //  System.out.println(strB.toString());
+
+        return strB.toString();
+
+    }
+
+    /************************************************************
+     *strB.append("CREATE TABLE username(Username VARCHAR(255),
+     *         _Identifier VARCHAR(255), First_name VARCHAR(255), Last_name VARCHAR(255));\n");
+     * @return
+     **************************************************************/
+    public String getSQLCreateString()
+    {
+        StringBuilder strB = new StringBuilder();
+
+        strB.append("CREATE TABLE `" + this.tableName + "` (");
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append("`" + headers.get(x) + "` " + dataTypeArray.get(x).dataTypeName);// " ' " to ignore reserved words
+
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            } else
+            {
+                strB.append(");\n");
+            }
+        }
+        System.out.println(strB.toString());
+        return strB.toString();
+    }
+
+
+
+}
+// Bulk loading
+//
+// first byte position for encoding.
+//
+// byte array // substitution / library
+//
+//
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+
+
+public class csvGUI
+{
+    private JButton Open;
+    private JButton Download;
+    private JButton Upload;
+    private JTextField textField1;
+    private JTextField TextField;
+    private JButton setDelimeterButton;
+    private JPanel guiPanel;
+    private JButton selectButton;
+    private JPanel printPanel;
+    private JTextField textField2;
+    private JButton saveButton;
+    private JTextField textField3;
+    private JComboBox comboBox1;
+    private JButton downloadButton;
+    private JButton selectFolderButton;
+    private JButton updateButton;
+
+    private Program prog;
+
+    public static void main(String[] args)
+    {
+        JFrame frame = new JFrame("csvGUI");
+        frame.setContentPane(new csvGUI().guiPanel);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    public csvGUI()
+    {
+        prog = new Program();
+
+
+        Open.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                prog.OpenFile(textField1.getText());
+                printTable(prog.tab);
+            }
+        });
+
+        Upload.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                prog.upload(textField1.getText());
+            }
+        });
+
+        selectButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                final JFileChooser fc = new JFileChooser();
+                int returnVal = fc.showOpenDialog(selectButton);
+
+                File file = fc.getSelectedFile();
+                String path = file.getPath();
+                textField1.setText(path);
+            }
+        });
+        setDelimeterButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                prog.setDelim(TextField.getText());
+            }
+        });
+    }
+
+
+    public void printTable(Table ent)
+    {
+        JTable table = new JTable(prog.tab.data, prog.tab.headers);
+        table.setBounds(30, 40, 200, 300);
+        JScrollPane sp = new JScrollPane(table);
+
+        this.printPanel.removeAll();
+        this.printPanel.setLayout(new BoxLayout(this.printPanel, BoxLayout.PAGE_AXIS));
+        this.printPanel.setAlignmentX(Component.LEFT_ALIGNMENT);//0.0)
+        this.printPanel.add(sp);
+        this.printPanel.revalidate();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+
+
+public class csvGUI
+{
+    private JButton Open;
+    private JButton Download;
+    private JButton Upload;
+    private JTextField textField1;
+    private JTextField TextField;
+    private JButton setDelimeterButton;
+    private JPanel guiPanel;
+    private JButton selectButton;
+    private JPanel printPanel;
+    private JTextField textField2;
+    private JButton saveButton;
+    private JTextField textField3;
+    private JComboBox comboBox1;
+    private JButton downloadButton;
+    private JButton selectFolderButton;
+    private JButton updateButton;
+
+    private Table tab;
+
+    public static void main(String[] args)
+    {
+        JFrame frame = new JFrame("csvGUI");
+        frame.setContentPane(new csvGUI().guiPanel);
+
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    public csvGUI()
+    {
+        tab = new Table();
+        comboBox1.removeAllItems();
+        tab.populateAvailableTables();
+        for(int x = 0; x<tab.databasesAvailable.size();x++)
+        {
+            comboBox1.addItem(tab.databasesAvailable.get(x));
+        }
+        comboBox1.revalidate();
+
+
+
+
+
+
+        Open.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                tab = new Table();
+                tab.setDelim(TextField.getText());
+                tab.readFile(textField1.getText());
+                printTable(tab);
+            }
+        });
+
+        Upload.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                tab.uploadToServer();
+            }
+        });
+
+        selectButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                final JFileChooser fc = new JFileChooser();
+                int returnVal = fc.showOpenDialog(selectButton);
+
+                File file = fc.getSelectedFile();
+                String path = file.getPath();
+                textField1.setText(path);
+            }
+        });
+        setDelimeterButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                tab.setDelim(TextField.getText());
+            }
+        });
+
+        updateButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                comboBox1.removeAllItems();
+                tab.populateAvailableTables();
+                for(int x = 0; x<tab.databasesAvailable.size();x++)
+                {
+                    comboBox1.addItem(tab.databasesAvailable.get(x));
+                }
+                comboBox1.revalidate();
+            }
+        });
+        downloadButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                tab = new Table();
+                tab.setDelim(TextField.getText());
+                tab.downloadTable(comboBox1.getName());
+                printTable(tab);
+            }
+        });
+    }
+
+
+    public void printTable(Table ent)
+    {
+        JTable table = new JTable(tab.data, tab.headers);
+        table.setBounds(30, 40, 200, 300);
+        JScrollPane sp = new JScrollPane(table);
+
+        this.printPanel.removeAll();
+        this.printPanel.setLayout(new BoxLayout(this.printPanel, BoxLayout.PAGE_AXIS));
+        this.printPanel.setAlignmentX(Component.LEFT_ALIGNMENT);//0.0)
+        this.printPanel.add(sp);
+        this.printPanel.revalidate();
+        //     this.printPanel.repaint();
+
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.sql.*;
+import java.util.ArrayList;
+        import java.util.Arrays;
+        import java.util.Scanner;
+        import java.util.Vector;
+
+
+enum DataTypes
+{
+    INT("INT"),
+    DOUBLE("DOUBLE"),
+    STRING ("VARCHAR(255)");
+    String dataTypeName;
+
+    DataTypes(String s)
+    {
+        dataTypeName = s;
+    }
+};
+
+public class Table
+{
+    String fileName = "";
+    Vector<Vector<String>> data = new Vector<Vector<String>>();
+    Vector<String> headers = new Vector<String>();
+    ArrayList<DataTypes> dataTypeArray = new ArrayList<>();
+
+    String saveFolder;
+    String databaseURL;
+    ArrayList<String> databasesAvailable = new ArrayList<String>();
+    String delim;
+    String username;
+    String password;
+
+    /**********************************************************************
+     * readFile
+     * reads csv file into "data" vector inside object
+     * @param path         file path for csv input file
+     *********************************************************************/
+
+    public void readFile(String path)
+    {
+        String line = "";
+        Scanner sc = null;
+        File inFile = null;
+        int index = 0;
+
+        try
+        {
+            inFile = new File(path);
+            sc = new Scanner(inFile, findCharSet(inFile));
+        }
+        catch (FileNotFoundException e)
+        {
+            System.out.println("file not found");
+            e.printStackTrace();
+        }
+
+        this.fileName = inFile.getName();
+        this.fileName = this.fileName.replaceAll("(?<!^)[.].*", ""); // remove extension for table name
+
+        while (sc.hasNextLine())   //populate data
+        {
+            line = sc.nextLine();
+            String[] strArr = line.split( delim+"(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1); // separating commas only
+            strArr = removeSpacesNum(strArr);
+            data.add(new Vector<>());
+            data.get(index).addAll(Arrays.asList(strArr));
+            index++;
+        }
+
+        this.populateDataTypes();
+        this.populateHeaders();
+    }
+
+    public void downloadTable(String tableName)
+    {
+        ResultSet resultSet = null;
+        String url = "jdbc:mysql://localhost:3306/mydb";
+        String username = "root";
+        String password = "SPIC3Ysausage";
+        Connection connection = null;
+        Statement statement = null;
+        int index = 0;
+
+        try
+        {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(url, username, password);
+            connection.setAutoCommit(false);
+            statement = connection.createStatement();
+            System.out.println(tableName);
+            resultSet = statement.executeQuery("SELECT * FROM " + tableName);
+
+
+            ResultSetMetaData meta = resultSet.getMetaData();
+            for (int x =0; x < meta.getColumnCount();x++)
+            {
+                //         System.out.println(meta.getColumnName(x+1)); //mysql starts from 1
+                this.headers.add(meta.getColumnName(x+1));
+            }
+
+
+            while (resultSet.next())
+            {
+                Vector<String> vString = new Vector<String>();
+
+                vString.addElement(resultSet.getString(headers.get(index)));
+                data.add(vString);
+
+                index++;
+            }
+
+
+printData();
+
+
+
+            connection.commit();
+            connection.close();
+
+        } catch (SQLException e)
+        {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e)
+        {
+            e.printStackTrace();
+        }
+
+    }
+
+
+
+
+    /****************************************************************************
+     * removeSpacesNums
+     * removes spaces and " from numbers currently stored as a string
+     * @param strArr      Array of string containing mixture of numbers and words
+     * @return strArr     Array with spaces and " removed from numbers
+     ****************************************************************************/
+    public String[] removeSpacesNum(String[] strArr)
+    {
+        for (int x = 0; x < strArr.length; x++)
+        {
+            //   System.out.println("remove space ");
+            if ( (!strArr[x].matches(".*[A-Za-z].*"))) // doesn't contain any letters .: probably number
+            {
+                strArr[x] = strArr[x].replaceAll("[^0-9.]", ""); ///changed this
+                System.out.println("remove space = " + strArr[x]);
+            }
+        }
+        return strArr;
+    }
+
+    /**************************************************************************
+     * findCharSet
+     * Find encoding for csv file. I don't like this and it needs work... but works...
+     * @param inFile                open inFile
+     * @return string with encoding type
+     **************************************************************************/
+
+    public String findCharSet(File inFile)
+    {
+        Scanner sc = null;
+        String[] charSetTypes = new String[]{"US-ASCII", "UTF-8", "CP1252", "UTF-16", "CP1252", "US-ASCII"};
+        String charSet = "CP1252";
+
+        for (int x = 0; x < charSetTypes.length; x++)
+        {
+            sc = findCharSetHelper(inFile, charSetTypes[x]);
+            if (sc != null)
+            {
+                if (sc.hasNextLine())
+                {
+                    charSet = charSetTypes[x];
+                    System.out.println(charSet);
+                    break;
+                }
+            }
+        }
+
+        return charSet;
+    }
+
+    /**************************************************************************
+     * findCharSetHelper
+     * To avoid try block
+     * @param inFile                open inFile
+     * @return string with encoding type
+     **************************************************************************/
+    Scanner findCharSetHelper(File inFile, String charSet)
+    {
+        Scanner sc = null;
+        try
+        {
+            sc = new Scanner(inFile, charSet);
+            sc.hasNextLine();
+        } catch (FileNotFoundException e)
+        {
+            System.out.println("helper error");
+            //      e.printStackTrace();
+            return null;
+        }
+        return sc;
+    }
+
+    /*********************************************************
+     * printName
+     * prints filename for testing purposes
+     **********************************************************/
+    public void printName()
+    {
+        System.out.println("print name :" + fileName);
+    }
+
+    /*********************************************************
+     * printData
+     * prints data for testing purposes
+     **********************************************************/
+    public void printData()
+    {
+        System.out.println(this.fileName);
+
+        for (int y = 0; y < data.size(); y++)
+        {
+            for (int x = 0; x < data.get(y).size(); x++)
+            {
+                System.out.print(data.get(y).get(x) + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    /***************************************************************************
+     * uploadToServer
+     * uploads csv as table in mySql database;
+     *
+     ****************************************************************************/
+    public void uploadToServer()
+    {
+        String url = "jdbc:mysql://localhost:3306/mydb";
+        String username = "root";
+        String password = "SPIC3Ysausage";
+        Connection connection = null;
+        PreparedStatement insertStatement = null;
+
+
+        try
+        {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(url, username, password);
+            connection.setAutoCommit(false);
+
+            Statement createStatement = connection.createStatement();
+            createStatement.executeUpdate(getSQLCreateString());
+
+            for (int y = 0; y < data.size(); y++)                           //insert data into mySql prepared statement.
+            {
+                insertStatement = connection.prepareStatement(getSQLInsertString());
+                for (int x = 0; x < data.get(y).size(); x++)
+                {
+                    try
+                    {
+                        switch (dataTypeArray.get(x))                                  // convert to correct dataType
+                        {
+                            case INT:
+                                //     System.out.println("To int " + data.get(y).get(x));
+                                insertStatement.setInt(x + 1, Integer.parseInt(data.get(y).get(x)));
+                                break;
+                            case DOUBLE:
+                                //    System.out.println("To double " + data.get(y).get(x));
+                                insertStatement.setDouble(x + 1, Double.parseDouble(data.get(y).get(x)));
+                                break;
+                            case STRING:
+                                //   System.out.println("To string" + data.get(y).get(x));
+                                insertStatement.setString(x + 1, data.get(y).get(x));
+                                break;
+                        }
+                    } catch (Exception e)
+                    {
+                        insertStatement.setNull(x + 1, Types.NULL);
+                    }
+
+                }
+                //    System.out.println(insertStatement.toString());
+                insertStatement.addBatch();
+                insertStatement.executeBatch();
+            }
+
+            connection.commit();
+            connection.close();
+
+        } catch (SQLException e)
+        {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e)
+        {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    public void populateHeaders()
+    {
+        char ch = 'A';
+        if (this.checkForHeader())
+        {
+            for (int x = 0; x < data.get(0).size(); x++)
+            {
+                data.get(0).set(x, data.get(0).get(x).replaceAll("[^0-9,a-z,A-Z$_]", "_")); // Only valid characters for column name.
+                headers.add(data.get(0).get(x));
+            }
+            data.remove(0);
+
+        } else
+        {
+            for (int x = 0; x < data.get(0).size(); x++)
+            {
+                headers.add(Character.toString(ch));
+                ch++;
+            }
+        }
+    }
+
+    public boolean checkForHeader()
+    {
+        boolean header = false;
+        for (int x = 0; x < data.get(0).get(x).length(); x++)
+        {
+            if (calcDT(data.get(0).get(x)) != this.dataTypeArray.get(x))
+            {
+                header = true;
+                break;
+            }
+        }
+        return header;
+
+    }
+
+
+    void populateDataTypes()
+    {
+        for (int x = 0; x < data.get(1).size(); x++)
+        {
+            this.dataTypeArray.add(calcDT(data.get(1).get(x)));
+        }
+    }
+
+
+    DataTypes calcDT(String str)
+    {
+        DataTypes result = DataTypes.STRING;
+
+        if (str.matches("-?\\d+?")) // is int (I hate regex)
+        {
+            result = DataTypes.INT;
+        } else if (str.matches("-?\\d+(\\.\\d+)?")) // is double
+        {
+            result = DataTypes.DOUBLE;
+        } else if (str.length() == 1) // char
+        {
+            result = DataTypes.STRING;
+        } else //string
+        {
+            result = DataTypes.STRING;
+        }
+
+        return result;
+    }
+
+
+    /*************************************************************************
+     * strB.append("INSERT INTO username (Username, _Identifier, First_name, Last_name) VALUES (?,?,?,?);");
+     * @return
+     *******************************************************************************************************/
+    public String getSQLInsertString()
+    {
+        StringBuilder strB = new StringBuilder();
+
+        strB.append("INSERT INTO " + this.fileName + " (`");
+
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append(headers.get(x));
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append("` , `");
+            }
+        }
+
+        strB.append("` ) VALUES (");
+
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append("?");
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            }
+        }
+        strB.append(");\n");
+
+        System.out.println(strB.toString());
+
+        return strB.toString();
+
+    }
+
+    /************************************************************
+     *strB.append("CREATE TABLE username(Username VARCHAR(255),
+     *         _Identifier VARCHAR(255), First_name VARCHAR(255), Last_name VARCHAR(255));\n");
+     * @return
+     **************************************************************/
+    public String getSQLCreateString()
+    {
+        StringBuilder strB = new StringBuilder();
+
+        strB.append("CREATE TABLE `" + this.fileName + "` (");
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append("`" + headers.get(x) + "` " + dataTypeArray.get(x).dataTypeName);// " ' " to ignore reserved words
+
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            } else
+            {
+                strB.append(");\n");
+            }
+        }
+        System.out.println(strB.toString());
+        return strB.toString();
+    }
+
+
+    void setDelim(String delim)
+    {
+        this.delim = delim;
+    }
+
+    void populateAvailableTables()
+    {
+        String url = "jdbc:mysql://localhost:3306/mydb";
+        String username = "root";
+        String password = "SPIC3Ysausage";
+        Connection connection = null;
+        int index = 0;
+
+        databasesAvailable.clear();
+
+        try
+        {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(url, username, password);
+            connection.setAutoCommit(false);
+
+            String[] types = {"TABLE"};
+
+            Statement stmt = connection.createStatement();
+            //Retrieving the data
+            ResultSet rs = stmt.executeQuery("Show tables");
+
+            while(rs.next())
+            {
+                databasesAvailable.add(rs.getString(1));
+         //       System.out.println(databasesAvailable.get(index));
+                //       System.out.println();
+                index++;
+            }
+
+
+            connection.commit();
+            connection.close();
+        } catch (ClassNotFoundException | SQLException e)
+        {
+            e.printStackTrace();
+        }
+    }
+}
+// Bulk loading
+//
+// first byte position for encoding.
+//
+// byte array // substitution / library
+//
+//
+
+
+

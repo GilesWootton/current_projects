@@ -1,0 +1,1951 @@
+
+    public void uploadToServer() throws SQLException {
+        String url = "jdbc:mysql://localhost:3306/mydb";
+        String username = "root";
+        String password = "SPIC3Ysausage";
+
+     //   Connection connection = null;
+
+      //  try {
+      //      Class.forName("com.mysql.cj.jdbc.Driver");
+      //      connection = DriverManager.getConnection(url, username, password);
+     //       connection.setAutoCommit(false);
+     //   }
+     //   catch (SQLException e)
+     //   {
+     //       e.printStackTrace();
+     //       System.out.println("Did not connect");
+     //   }
+     //   catch (ClassNotFoundException e)
+      //  {
+      //      e.printStackTrace();
+     //   }
+
+     //   String sql = "INSERT INTO test (course_name, student_name, timestamp, rating, comment) VALUES (?, ?, ?, ?, ?)";
+     //   PreparedStatement statement = connection.prepareStatement(sql);
+
+        for(int y = 0; y< data.size(); y++) {
+            for (int x = 0; x < data.get(y).size(); x++) {
+                //        statement.setString(1, data.get(y).get(x));
+            }
+        }
+
+     //           statement.addBatch();
+        //        statement.executeBatch();
+
+        }
+
+
+
+     //   try
+    //    {
+     //       connection.commit();
+    //        connection.close();
+     //   }
+    //    catch (SQLException throwables)
+   //     {
+    //        throwables.printStackTrace();
+    //    }
+
+  //  }
+
+/*
+    public void uploadToServer()
+    {
+        String url = "jdbc:mysql://localhost:3306/sales";
+        String username = "user";
+        String password = "password";
+
+        String csvFilePath = "Reviews-simple.csv";
+        int batchSize = 20;
+
+        Connection connection = null;
+
+        try
+        {
+            connection = DriverManager.getConnection(jdbcURL, username, password);
+            connection.setAutoCommit(false);
+            String sql = "INSERT INTO review (course_name, student_name, timestamp, rating, comment) VALUES (?, ?, ?, ?, ?)";
+            PreparedStatement statement = connection.prepareStatement(sql);
+
+            BufferedReader lineReader = new BufferedReader(new FileReader(csvFilePath));
+            String lineText = null;
+
+            int count = 0;
+
+            lineReader.readLine(); // skip header line
+
+            while ((lineText = lineReader.readLine()) != null) {
+                String[] data = lineText.split(",");
+                String courseName = data[0];
+                String studentName = data[1];
+                String timestamp = data[2];
+                String rating = data[3];
+                String comment = data.length == 5 ? data[4] : "";
+
+                statement.setString(1, courseName);
+                statement.setString(2, studentName);
+
+                Timestamp sqlTimestamp = Timestamp.valueOf(timestamp);
+                statement.setTimestamp(3, sqlTimestamp);
+
+                Float fRating = Float.parseFloat(rating);
+                statement.setFloat(4, fRating);
+
+                statement.setString(5, comment);
+
+                statement.addBatch();
+
+                if (count % batchSize == 0) {
+                    statement.executeBatch();
+                }
+            }
+
+            lineReader.close();
+
+            // execute the remaining queries
+            statement.executeBatch();
+
+            connection.commit();
+            connection.close();
+
+        } catch (IOException ex) {
+            System.err.println(ex);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+
+            try {
+                connection.rollback();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }*/
+
+
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+    import javax.swing.*;
+    import java.io.File;
+    import java.io.FileNotFoundException;
+    import java.util.ArrayList;
+    import java.util.Scanner;
+    import java.sql.*;
+
+
+    enum DataTypes
+    {
+        INT("INT"),
+        DOUBLE("DOUBLE"),
+        STRING ("VARCHAR(255)");
+
+         String dataTypeName;
+        DataTypes(String s)
+        {
+           dataTypeName = s;
+        }
+    };
+
+    public class Entry
+    {
+        String fileName = "";
+        ArrayList<ArrayList<String>> data = new ArrayList<>();
+        ArrayList<DataTypes> types = new ArrayList<>();
+
+        public void printName()
+        {
+            System.out.println("print name :" + fileName);
+        }
+
+        public void readFile(String path) throws FileNotFoundException {
+            String line;
+            int rowNum = 0;
+            Scanner sc;
+            System.out.print("cunt");
+            File inFile;
+            try
+            {
+                inFile = new File(path);
+                sc = new Scanner(inFile);
+            }
+
+            catch (FileNotFoundException e)
+            {
+                System.out.print("fuck");
+                JOptionPane.showInputDialog("File name not valid");
+                return;
+            }
+
+            this.fileName = inFile.getName();
+            this.fileName = this.fileName.replaceAll("(?<!^)[.].*", "");
+
+
+
+
+
+
+            while (sc.hasNext())
+            {
+                line = sc.nextLine();
+                readRow(line, rowNum);
+                System.out.print(line);
+                rowNum++;
+            }
+
+
+
+     //       printData();
+        }
+
+        public void readRow(String line, int rowNum)
+        {
+            data.add(new ArrayList<String>());
+            line = line.replace(" ", "_");
+            Scanner sc = new Scanner(line);
+
+            sc.useDelimiter(",");
+            System.out.print(line);
+            while (sc.hasNext())
+            {
+                data.get(rowNum).add(sc.next());
+
+            }
+            this.printData();
+        }
+
+        public void printData()
+        {
+            System.out.println(this.fileName);
+
+            for (int y = 0; y < data.size(); y++)
+            {
+                for (int x = 0; x < data.get(y).size(); x++)
+                {
+                    System.out.print(data.get(y).get(x) + " ");
+                }
+                System.out.println();
+            }
+        }
+
+
+        public void uploadToServer()
+        {
+            String url = "jdbc:mysql://localhost:3306/mydb";
+            String username = "root";
+            String password = "SPIC3Ysausage";
+            Connection connection = null;
+
+            this.getDataTypes();
+            try
+            {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                connection = DriverManager.getConnection(url, username, password);
+                connection.setAutoCommit(false);
+
+                Statement createStatement = connection.createStatement();
+                createStatement.executeUpdate(getSQLCreateString());
+
+
+                for (int y = 1; y < data.size(); y++)
+                {
+                    PreparedStatement insertStatement = connection.prepareStatement(getSQLInsertString());
+
+                    for (int x = 0; x < data.get(y).size(); x++)
+                    {
+                        switch (types.get(x))
+                        {
+                            case INT:
+                                System.out.println("To int " + data.get(y).get(x));
+                                insertStatement.setInt(x + 1, Integer.parseInt(data.get(y).get(x)));
+                                break;
+                            case DOUBLE:
+                                System.out.println("To double " + data.get(y).get(x));
+                                insertStatement.setDouble(x + 1, Double.parseDouble(data.get(y).get(x)));
+                                break;
+                            case STRING:
+                                System.out.println("To string" +  data.get(y).get(x));
+                                insertStatement.setString(x + 1, data.get(y).get(x));
+                                break;
+                        }
+
+                    }
+                    System.out.println(insertStatement.toString());
+                    insertStatement.addBatch();
+                    insertStatement.executeBatch();
+                }
+
+                connection.commit();
+                connection.close();
+
+            } catch (SQLException e)
+            {
+                e.printStackTrace();
+            } catch (ClassNotFoundException e)
+            {
+                e.printStackTrace();
+            }
+
+        }
+
+         public String getSQLInsertString()
+         {
+             StringBuilder strB = new StringBuilder();
+         //    strB.append("INSERT INTO username (Username, _Identifier, First_name, Last_name) VALUES (?,?,?,?);");
+
+             strB.append("INSERT INTO " + this.fileName + " (");
+
+             for (int x = 0; x < data.get(0).size(); x++)
+             {
+                 strB.append(data.get(0).get(x));
+                 if(data.get(0).size() != x+1)
+                 {
+                     strB.append(", ");
+                 }
+             }
+
+             strB.append(") VALUES (");
+
+             for (int x = 0; x < data.get(0).size(); x++)
+             {
+                 strB.append("?");
+                 if(data.get(0).size() != x+1)
+                 {
+                     strB.append(", ");
+                 }
+             }
+             strB.append(");\n");
+
+             System.out.println(strB.toString());
+
+             return strB.toString();
+
+         }
+
+         public String getSQLCreateString()
+         {
+             StringBuilder strB = new StringBuilder();
+          //    strB.append("CREATE TABLE username(Username VARCHAR(255), _Identifier VARCHAR(255), First_name VARCHAR(255), Last_name VARCHAR(255));\n");
+
+             strB.append("CREATE TABLE " + this.fileName + "(");
+             for (int x = 0; x < data.get(0).size(); x++)
+             {
+                 strB.append(data.get(0).get(x) + " " + types.get(x).dataTypeName);
+                 if (data.get(0).size() != x + 1)
+                 {
+                     strB.append(", ");
+                 }
+                 else
+                 {
+                     strB.append(");\n");
+                 }
+             }
+             return strB.toString();
+         }
+
+
+
+
+
+
+
+
+        void getDataTypes()
+        {
+
+            for (int x = 0; x < data.get(1).size(); x++)
+            {
+                if (data.get(1).get(x).matches("-?\\d+?")) // is int (I hate regex)
+                {
+                    types.add(DataTypes.INT);
+                }
+                else if (data.get(1).get(x).matches("-?\\d+(\\.\\d+)?")) // is double
+                {
+                    types.add(DataTypes.DOUBLE);
+
+                }
+                else if (data.get(1).get(x).length() == 1) // char
+                {
+                    types.add(DataTypes.STRING);
+                }
+                else //string
+                {
+                    types.add(DataTypes.STRING);
+                }
+            }
+        }
+    /*
+        public void uploadToServer()
+        {
+            String url = "jdbc:mysql://localhost:3306/sales";
+            String username = "user";
+            String password = "password";
+
+            String csvFilePath = "Reviews-simple.csv";
+            int batchSize = 20;
+
+            Connection connection = null;
+
+            try
+            {
+                connection = DriverManager.getConnection(jdbcURL, username, password);
+                connection.setAutoCommit(false);
+                String sql = "INSERT INTO review (course_name, student_name, timestamp, rating, comment) VALUES (?, ?, ?, ?, ?)";
+                PreparedStatement statement = connection.prepareStatement(sql);
+
+                BufferedReader lineReader = new BufferedReader(new FileReader(csvFilePath));
+                String lineText = null;
+
+                int count = 0;
+
+                lineReader.readLine(); // skip header line
+
+                while ((lineText = lineReader.readLine()) != null) {
+                    String[] data = lineText.split(",");
+                    String courseName = data[0];
+                    String studentName = data[1];
+                    String timestamp = data[2];
+                    String rating = data[3];
+                    String comment = data.length == 5 ? data[4] : "";
+
+                    statement.setString(1, courseName);
+                    statement.setString(2, studentName);
+
+                    Timestamp sqlTimestamp = Timestamp.valueOf(timestamp);
+                    statement.setTimestamp(3, sqlTimestamp);
+
+                    Float fRating = Float.parseFloat(rating);
+                    statement.setFloat(4, fRating);
+
+                    statement.setString(5, comment);
+
+                    statement.addBatch();
+
+                    if (count % batchSize == 0) {
+                        statement.executeBatch();
+                    }
+                }
+
+                lineReader.close();
+
+                // execute the remaining queries
+                statement.executeBatch();
+
+                connection.commit();
+                connection.close();
+
+            } catch (IOException ex) {
+                System.err.println(ex);
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+
+                try {
+                    connection.rollback();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }*/
+    }
+
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+import javax.swing.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.sql.*;
+
+
+enum DataTypes
+{
+    INT("INT"),
+    DOUBLE("DOUBLE"),
+    STRING ("VARCHAR(255)");
+
+    String dataTypeName;
+    DataTypes(String s)
+    {
+        dataTypeName = s;
+    }
+};
+
+enum CharSetType
+{
+    ANSI("CP1252"),
+    ASCII("US-ASCII"),
+    UTF8("UTF-8"),
+    UTF16("UTF-16");
+
+    String charType;
+    CharSetType(String s)
+    {
+        charType = s;
+    }
+
+};
+
+public class Entry
+{
+    String fileName = "";
+    ArrayList<ArrayList<String>> data = new ArrayList<>();
+    ArrayList<DataTypes> types = new ArrayList<>();
+
+    public void printName()
+    {
+        System.out.println("print name :" + fileName);
+    }
+
+    public void readFile(String path) throws FileNotFoundException
+    {
+        String line;
+        int rowNum = 0;
+        String[] charSetTypes = new String[]{"CP1252","UTF-8", "US-ASCII","UTF-16" };
+        String charSet = "";
+
+        Scanner sc;
+        File inFile;
+
+        inFile = new File(path);
+        JOptionPane.showInputDialog("File name not valid");
+
+        for(int x = 0; x < charSetTypes.length;x++)
+        {
+            sc = new Scanner(inFile, charSetTypes[x]);
+            if(sc.hasNextLine())
+            {
+                charSet = charSetTypes[x];
+                break;
+            }
+        }
+
+        sc = new Scanner(inFile, charSet);
+
+
+        this.fileName = inFile.getName();
+        this.fileName = this.fileName.replaceAll("(?<!^)[.].*", "");
+
+
+        while (sc.hasNextLine())
+        {
+            line = sc.nextLine();
+            readRow(line, rowNum);
+            //        System.out.print(line);
+            rowNum++;
+        }
+
+
+        //          printData();
+    }
+
+    public void readRow(String line, int rowNum)
+    {
+        data.add(new ArrayList<String>());
+        line = line.replace(" ", "_");
+        Scanner sc = new Scanner(line);
+
+        sc.useDelimiter(",");
+        //    System.out.print(line);
+        while (sc.hasNext())
+        {
+            data.get(rowNum).add(sc.next());
+
+        }
+        //   this.printData();
+    }
+
+    public void printData()
+    {
+        System.out.println(this.fileName);
+
+        for (int y = 0; y < data.size(); y++)
+        {
+            for (int x = 0; x < data.get(y).size(); x++)
+            {
+                System.out.print(data.get(y).get(x) + " ");
+            }
+            System.out.println();
+        }
+    }
+
+
+    public void uploadToServer()
+    {
+        String url = "jdbc:mysql://localhost:3306/mydb";
+        String username = "root";
+        String password = "SPIC3Ysausage";
+        Connection connection = null;
+
+        this.getDataTypes();
+        try
+        {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(url, username, password);
+            connection.setAutoCommit(false);
+
+            Statement createStatement = connection.createStatement();
+            createStatement.executeUpdate(getSQLCreateString());
+
+
+            for (int y = 1; y < data.size(); y++)
+            {
+                PreparedStatement insertStatement = connection.prepareStatement(getSQLInsertString());
+
+                for (int x = 0; x < data.get(y).size(); x++)
+                {
+                    switch (types.get(x))
+                    {
+                        case INT:
+                            System.out.println("To int " + data.get(y).get(x));
+                            insertStatement.setInt(x + 1, Integer.parseInt(data.get(y).get(x)));
+                            break;
+                        case DOUBLE:
+                            System.out.println("To double " + data.get(y).get(x));
+                            insertStatement.setDouble(x + 1, Double.parseDouble(data.get(y).get(x)));
+                            break;
+                        case STRING:
+                            System.out.println("To string" + data.get(y).get(x));
+                            insertStatement.setString(x + 1, data.get(y).get(x));
+                            break;
+                    }
+
+                }
+                System.out.println(insertStatement.toString());
+                insertStatement.addBatch();
+                insertStatement.executeBatch();
+            }
+
+            connection.commit();
+            connection.close();
+
+        } catch (SQLException e)
+        {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e)
+        {
+            e.printStackTrace();
+        }
+
+    }
+
+    public String getSQLInsertString()
+    {
+        StringBuilder strB = new StringBuilder();
+        //    strB.append("INSERT INTO username (Username, _Identifier, First_name, Last_name) VALUES (?,?,?,?);");
+
+        strB.append("INSERT INTO " + this.fileName + " (");
+
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append(data.get(0).get(x));
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            }
+        }
+
+        strB.append(") VALUES (");
+
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append("?");
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            }
+        }
+        strB.append(");\n");
+
+        System.out.println(strB.toString());
+
+        return strB.toString();
+
+    }
+
+    public String getSQLCreateString()
+    {
+        StringBuilder strB = new StringBuilder();
+        //    strB.append("CREATE TABLE username(Username VARCHAR(255), _Identifier VARCHAR(255), First_name VARCHAR(255), Last_name VARCHAR(255));\n");
+
+        strB.append("CREATE TABLE " + this.fileName + "(");
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append(data.get(0).get(x) + " " + types.get(x).dataTypeName);
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            } else
+            {
+                strB.append(");\n");
+            }
+        }
+        return strB.toString();
+    }
+
+
+    void getDataTypes()
+    {
+        for (int x = 0; x < data.get(1).size(); x++)
+        {
+            if (data.get(1).get(x).matches("-?\\d+?")) // is int (I hate regex)
+            {
+                types.add(DataTypes.INT);
+            } else if (data.get(1).get(x).matches("-?\\d+(\\.\\d+)?")) // is double
+            {
+                types.add(DataTypes.DOUBLE);
+
+            } else if (data.get(1).get(x).length() == 1) // char
+            {
+                types.add(DataTypes.STRING);
+            } else //string
+            {
+                types.add(DataTypes.STRING);
+            }
+        }
+    }
+}
+
+/*
+            JPanel panel;
+
+            public AddComponentOnJFrameAtRuntime() {
+                super("Add component on JFrame at runtime");
+                setLayout(new BorderLayout());
+                this.panel = new JPanel();
+                this.panel.setLayout(new FlowLayout());
+                add(panel, BorderLayout.CENTER);
+                JButton button = new JButton("CLICK HERE");
+                add(button, BorderLayout.SOUTH);
+                button.addActionListener(this);
+                setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                setSize(500, 500);
+                setVisible(true);
+            }
+
+            public void actionPerformed(ActionEvent evt) {
+                this.panel.add(new JButton("Button"));
+                this.panel.revalidate();
+                validate();
+            }
+
+        }
+        */
+
+
+
+
+
+    public void printEntry(Entry ent)
+    {
+        Border blackline = BorderFactory.createLineBorder(Color.black);
+        JTextArea titleCell = new JTextArea(ent.fileName,1, 50);
+        titleCell.setMaximumSize( titleCell.getPreferredSize() );
+        Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+        titleCell.setFont(font);
+        titleCell.setBorder(blackline);
+
+    /*    JPanel cellPanel = new JPanel();
+        cellPanel.setLayout(new GridLayout(ent.data.size(), ent.data.get(0).size()));
+        cellPanel.setSize(ent.data.size()*100 ,ent.data.get(0).size()*20);
+
+
+        for (int y = 0; y < ent.data.size(); y++)
+        {
+            for (int x = 0; x < ent.data.get(y).size(); x++)
+            {
+                JTextArea cell = new JTextArea(ent.data.get(y).get(x),1,1);
+                cell.setFont(font);
+                cell.setOpaque(true);
+                cell.setBorder(new LineBorder(Color.BLACK));
+                cell.setPreferredSize(new Dimension(100, 20));
+
+                JScrollPane scrollPane = new JScrollPane(cell);
+                scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+                scrollPane.setPreferredSize(new Dimension(100, 20));
+                cellPanel.add(cell);
+            }
+        }*/
+
+        this.printPanel.add(titleCell);
+   //     this.printPanel.add(cellPanel);
+        this.printPanel.revalidate();
+         //  validate();
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ public void printEntry(Entry ent)
+    {
+        Border blackline = BorderFactory.createLineBorder(Color.black);
+        JTextArea titleCell = new JTextArea(ent.fileName,1, 50);
+        titleCell.setMaximumSize( titleCell.getPreferredSize() );
+        Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+        titleCell.setFont(font);
+        titleCell.setBorder(blackline);
+
+        this.printPanel.setLayout(new GridLayout(ent.data.size(), ent.data.get(0).size()));
+        this.printPanel.add(titleCell);
+
+        for (int y = 0; y < ent.data.size(); y++)
+        {
+            for (int x = 0; x < ent.data.get(y).size(); x++)
+            {
+                JTextArea cell = new JTextArea(ent.data.get(y).get(x),1,1);
+                cell.setFont(font);
+                cell.setOpaque(true);
+                cell.setBorder(new LineBorder(Color.BLACK));
+
+                JScrollPane scrollPane = new JScrollPane(cell);
+                scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+                scrollPane.setPreferredSize(new Dimension(200, 25));
+
+                this.printPanel.add(cell);
+            }
+        }
+
+
+        this.printPanel.revalidate();
+         //  validate();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+
+
+public class csvGUI
+{
+    private JTextArea textArea1;
+    private JButton Display;
+    private JButton Download;
+    private JButton Upload;
+    private JTextField textField1;
+    private JTextField delimeterTextField;
+    private JButton setDelimeterButton;
+    private JPanel guiPanel;
+    private JButton selectButton;
+    private JPanel printPanel;
+
+    private Entry ent;
+
+    public static void main(String[] args)
+    {
+        JFrame frame = new JFrame("csvGUI");
+        frame.setContentPane(new csvGUI().guiPanel);
+
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    public csvGUI()
+    {
+        Display.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                ent = new Entry();
+                ent.readFile(textField1.getText());
+        //        printEntryGridLayout(ent);
+                printEntryBoxLayout(ent);
+            }
+        });
+
+        Upload.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                ent.uploadToServer();
+            }
+        });
+
+        Download.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+
+            }
+        });
+
+        selectButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                final JFileChooser fc = new JFileChooser();
+                int returnVal = fc.showOpenDialog(selectButton);
+
+                File file = fc.getSelectedFile();
+                String path = file.getPath();
+                textField1.setText(path);
+            }
+        });
+
+
+    }
+
+    public void printEntryGridLayout(Entry ent)
+    {
+        Border blackline = BorderFactory.createLineBorder(Color.black);
+        Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+
+        JPanel cellPanel = new JPanel();
+        cellPanel.setLayout(new GridLayout(ent.data.size(), ent.data.get(0).size()));
+        cellPanel.setSize(ent.data.size() * 100, ent.data.get(0).size() * 20);
+        cellPanel.setMaximumSize(new Dimension(ent.data.size() * 100, ent.data.get(0).size() * 20));
+
+
+        for (int y = 0; y < ent.data.size(); y++)
+        {
+            for (int x = 0; x < ent.data.get(y).size(); x++)
+            {
+                JTextArea cell = new JTextArea(ent.data.get(y).get(x), 1, 1);
+                cell.setFont(font);
+                cell.setOpaque(true);
+                cell.setBorder(new LineBorder(Color.BLACK));
+                cell.setPreferredSize(new Dimension(50, 20));
+
+                JScrollPane scrollPane = new JScrollPane(cell);
+                scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+                scrollPane.setPreferredSize(new Dimension(100, 20));
+                cellPanel.add(cell);
+            }
+        }
+        //   this.printPanel.add(titleCell);
+
+        this.printPanel.setLayout(new GridLayout(1, 1));
+        this.printPanel.add(cellPanel);
+        this.printPanel.revalidate();
+        //  validate();
+    }
+
+
+    public void printEntryBoxLayout(Entry ent)
+    {
+        {
+            JTextArea titleCell = new JTextArea(ent.fileName, 1, 100);
+            titleCell.setAlignmentX( Component.LEFT_ALIGNMENT );//0.0)
+
+            titleCell.setSize(ent.data.get(0).size() * 100, 30);
+            titleCell.setPreferredSize(new Dimension(ent.data.get(0).size() * 100, 30));
+            titleCell.setMinimumSize(titleCell.getPreferredSize());
+            titleCell.setMaximumSize(titleCell.getPreferredSize());
+
+            Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+            titleCell.setFont(font);
+            titleCell.setBorder(BorderFactory.createLineBorder(Color.black));
+
+            this.printPanel.setLayout(new BoxLayout(this.printPanel, BoxLayout.PAGE_AXIS));
+            this.printPanel.add(titleCell);
+            for (int y = 0; y < ent.data.size(); y++)
+            {
+                this.printPanel.add(createRowPanel(y));
+            }
+            this.printPanel.revalidate();
+            //  validate();
+        }
+    }
+    public JPanel createRowPanel(int rowNum)
+    {
+        JPanel rowPanel = new JPanel();
+        Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+        rowPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0,0));
+        rowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );//0.0
+        rowPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        rowPanel.setSize((ent.data.get(0).size()) * 200, 30);
+        rowPanel.setMinimumSize(new Dimension(ent.data.get(0).size() * 200,  30));
+        rowPanel.setMaximumSize(new Dimension(ent.data.get(0).size() * 200,  30));
+
+
+        for (int x = 0; x < ent.data.get(rowNum).size(); x++)
+        {
+            JTextArea cell = new JTextArea(ent.data.get(rowNum).get(x), 1, 1);
+            cell.setBorder(BorderFactory.createLineBorder(Color.black));
+            cell.setSize(200,30);
+            cell.setOpaque(true);
+            cell.setFont(font);
+
+            JScrollPane scrollPane = new JScrollPane(cell);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder(0,0,0,0));
+            scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+            scrollPane.setPreferredSize(new Dimension(200, 30));
+            rowPanel.add(scrollPane);
+        }
+        rowPanel.revalidate();
+
+        return rowPanel;
+    }
+
+
+}
+
+
+
+
+
+    public void printEntryGridLayout(Entry ent)
+    {
+        Border blackline = BorderFactory.createLineBorder(Color.black);
+        Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+
+        JPanel cellPanel = new JPanel();
+        cellPanel.setLayout(new GridLayout(ent.data.size(), ent.data.get(0).size()));
+        cellPanel.setSize(ent.data.size() * 100, ent.data.get(0).size() * 20);
+        cellPanel.setMaximumSize(new Dimension(ent.data.size() * 100, ent.data.get(0).size() * 20));
+
+
+        for (int y = 0; y < ent.data.size(); y++)
+        {
+            for (int x = 0; x < ent.data.get(y).size(); x++)
+            {
+                JTextArea cell = new JTextArea(ent.data.get(y).get(x), 1, 1);
+                cell.setFont(font);
+                cell.setOpaque(true);
+                cell.setBorder(new LineBorder(Color.BLACK));
+                cell.setPreferredSize(new Dimension(50, 20));
+
+                JScrollPane scrollPane = new JScrollPane(cell);
+                scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+                scrollPane.setPreferredSize(new Dimension(100, 20));
+                cellPanel.add(cell);
+            }
+        }
+        //   this.printPanel.add(titleCell);
+
+        this.printPanel.setLayout(new GridLayout(1, 1));
+        this.printPanel.add(cellPanel);
+        this.printPanel.revalidate();
+        //  validate();
+    }
+
+
+
+
+
+
+
+
+
+
+
+    public JPanel BlankRowPanel(int rowNum)
+    {
+        JPanel rowPanel = new JPanel();
+
+        rowPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0,0));
+        rowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );//0.0
+        rowPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        rowPanel.setSize((ent.data.get(0).size()) * 200, 30);
+        rowPanel.setMinimumSize(new Dimension(ent.data.get(0).size() * 200,  30));
+        rowPanel.setMaximumSize(new Dimension(ent.data.get(0).size() * 200,  30));
+
+
+        for (int x = 0; x < ent.data.get(rowNum).size(); x++)
+        {
+            JTextArea cell = new JTextArea("", 1, 1);
+
+            cell.setBorder(BorderFactory.createLineBorder(Color.black));
+            cell.setSize(200,30);
+            cell.setOpaque(true);
+
+
+            JScrollPane scrollPane = new JScrollPane(cell);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder(0,0,0,0));
+            scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+            scrollPane.setPreferredSize(new Dimension(200, 30));
+            rowPanel.add(scrollPane);
+            rowPanel.revalidate();
+            rowPanel.repaint();
+        }
+
+
+        return rowPanel;
+    }
+
+
+
+
+
+
+    public JPanel createRowPanel(int rowNum)
+    {
+        JPanel rowPanel = new JPanel();
+        Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+        rowPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0,0));
+        rowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );//0.0
+        rowPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        rowPanel.setSize((ent.data.get(0).size()) * 200, 30);
+        rowPanel.setMinimumSize(new Dimension(ent.data.get(0).size() * 200,  30));
+        rowPanel.setMaximumSize(new Dimension(ent.data.get(0).size() * 200,  30));
+
+
+        for (int x = 0; x < ent.data.get(rowNum).size(); x++)
+        {
+            JTextArea cell = new JTextArea(ent.data.get(rowNum).get(x), 1, 1);
+            cell.setBorder(BorderFactory.createLineBorder(Color.black));
+            cell.setSize(200,30);
+            cell.setOpaque(true);
+            cell.setFont(font);
+
+            JScrollPane scrollPane = new JScrollPane(cell);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder(0,0,0,0));
+            scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+            scrollPane.setPreferredSize(new Dimension(200, 30));
+            rowPanel.add(scrollPane);
+            rowPanel.revalidate();
+            rowPanel.repaint();
+        }
+
+
+        return rowPanel;
+    }
+ /*   public void timerPrint(String text) {
+        Timer timer = new Timer(50, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                               // You could stop the timer here..
+                }
+            }
+        });
+        timer.start()*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+            JTextArea titleCell = new JTextArea(ent.fileName, 1, 100);
+            titleCell.setAlignmentX( Component.LEFT_ALIGNMENT );//0.0)
+
+            titleCell.setSize(ent.data.get(0).size() * 100, 30);
+            titleCell.setPreferredSize(new Dimension(ent.data.get(0).size() * 100, 30));
+            titleCell.setMinimumSize(titleCell.getPreferredSize());
+            titleCell.setMaximumSize(titleCell.getPreferredSize());
+
+            Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+            titleCell.setFont(font);
+            titleCell.setBorder(BorderFactory.createLineBorder(Color.black));
+
+            this.printPanel.setLayout(new BoxLayout(this.printPanel, BoxLayout.PAGE_AXIS));
+            this.printPanel.add(titleCell);
+
+            for (int y = 0; y < ent.data.size()-5; y+= 5)
+            {
+                this.printPanel.add(createRowPanelSection(y, y+5));
+            }
+            this.printPanel.revalidate();
+            //     this.printPanel.repaint();
+            //  validate();
+        }
+    }
+
+
+    public void printEntryBoxLayout(Entry ent)
+    {
+        {
+            JTextArea titleCell = new JTextArea(ent.fileName, 1, 100);
+            titleCell.setAlignmentX( Component.LEFT_ALIGNMENT );//0.0)
+
+            titleCell.setSize(ent.data.get(0).size() * 100, 30);
+            titleCell.setPreferredSize(new Dimension(ent.data.get(0).size() * 100, 30));
+            titleCell.setMinimumSize(titleCell.getPreferredSize());
+            titleCell.setMaximumSize(titleCell.getPreferredSize());
+
+            Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+            titleCell.setFont(font);
+            titleCell.setBorder(BorderFactory.createLineBorder(Color.black));
+
+            this.printPanel.setLayout(new BoxLayout(this.printPanel, BoxLayout.PAGE_AXIS));
+            this.printPanel.add(titleCell);
+
+            for (int y = 0; y < ent.data.size()-5; y+= 5)
+            {
+                this.printPanel.add(createRowPanelSection(y, y+5));
+            }
+            this.printPanel.revalidate();
+       //     this.printPanel.repaint();
+            //  validate();
+        }
+    }
+
+
+    public JPanel createRowPanelSection(int rowStart, int rowEnd)
+    {
+        JPanel tablePanel = new JPanel();
+        tablePanel = new JPanel();
+
+
+        Vector<String> testCol = new Vector<String>();
+        testCol.add("ID");
+        testCol.add("NAME");
+        testCol.add("SALARY");
+        testCol.add("ID");
+        testCol.add("ID");
+        testCol.add("ID");
+        testCol.add("ID");
+        testCol.add("ID");
+
+
+        JTable table = new JTable(ent.data, testCol);
+
+
+
+        table.setBounds(30, 40, 200, 300);
+       // JScrollPane sp = new JScrollPane(table);
+        tablePanel.add(table);
+        tablePanel.setSize(3000, 4000);
+        tablePanel.setVisible(true);
+
+
+      /*
+
+
+        JPanel rowPanel = new JPanel();
+        JTextArea cell = null;
+        JScrollPane scrollPane = null;
+
+
+        Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+        rowPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        rowPanel.setAlignmentX(Component.LEFT_ALIGNMENT);//0.0
+        rowPanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        rowPanel.setSize((ent.data.get(0).size()) * 200, 30);
+        rowPanel.setMinimumSize(new Dimension(ent.data.get(0).size() * 200, 30));
+        rowPanel.setMaximumSize(new Dimension(ent.data.get(0).size() * 200, 30));
+
+        for (int y = rowStart; y < rowEnd; y++)
+        {
+            for (int x = 0; x < ent.data.get(y).size(); x++)
+            {
+                cell = new JTextArea(ent.data.get(y).get(x), 1, 1);
+                cell.setBorder(BorderFactory.createLineBorder(Color.black));
+                cell.setSize(200, 30);
+                cell.setOpaque(true);
+                cell.setFont(font);
+
+                scrollPane = new JScrollPane(cell);
+                scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+                scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+                scrollPane.setPreferredSize(new Dimension(200, 30));
+
+                rowPanel.add(scrollPane);
+            }
+            multipleRows.setLayout(new BoxLayout(multipleRows, BoxLayout.Y_AXIS));
+        //    multipleRows.setLayout(new GridLayout());
+            multipleRows.add(rowPanel);*/
+     //   }
+        return tablePanel;
+    }
+*/
+
+
+
+
+ public void readRow(String line, int rowNum)
+    {
+        data.add(new Vector<String>());
+        line = line.replace(" ", "_");
+        Scanner sc = new Scanner(line);
+
+        sc.useDelimiter(",");
+        //    System.out.print(line);
+        while (sc.hasNext())
+        {
+            data.get(rowNum).add(sc.next());
+
+        }
+           this.printData();
+    }
+
+
+
+
+/*
+public void printEntry(Entry ent)
+        {
+        Border blackline = BorderFactory.createLineBorder(Color.black);
+        JTextArea titleCell = new JTextArea(ent.fileName,1, 50);
+        titleCell.setMaximumSize( titleCell.getPreferredSize() );
+        Font font = new Font("ROMAN_BASELINE", Font.BOLD, 20);
+        titleCell.setFont(font);
+        titleCell.setBorder(blackline);
+
+        this.printPanel.setLayout(new GridLayout(ent.data.size(), ent.data.get(0).size()));
+        this.printPanel.add(titleCell);
+
+        for (int y = 0; y < ent.data.size(); y++)
+        {
+        for (int x = 0; x < ent.data.get(y).size(); x++)
+        {
+        JTextArea cell = new JTextArea(ent.data.get(y).get(x),1,1);
+        cell.setFont(font);
+        cell.setOpaque(true);
+        cell.setBorder(new LineBorder(Color.BLACK));
+
+        JScrollPane scrollPane = new JScrollPane(cell);
+        scrollPane.setHorizontalScrollBarPolicy(scrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(scrollPane.VERTICAL_SCROLLBAR_NEVER);
+        scrollPane.setPreferredSize(new Dimension(200, 25));
+
+        this.printPanel.add(cell);
+        }
+        }
+
+
+        this.printPanel.revalidate();
+        //  validate();
+        }
+*/
+
+
+
+
+
+
+
+ public void readRow(String line, int rowNum)
+    {
+        data.add(new Vector<String>());
+        line = line.replace(" ", "_");
+        Scanner sc = new Scanner(line);
+
+        sc.useDelimiter(",");
+        while (sc.hasNext())
+        {
+            data.get(rowNum).add(sc.next());
+
+        }
+           this.printData();
+    }
+
+
+
+       public void readRow(String line, int rowNum)
+        {
+            data.add(new Vector<String>());
+            line = line.replace(" ", "_");
+            Scanner sc = new Scanner(line);
+
+            sc.useDelimiter(",");
+            while (sc.hasNext())
+            {
+                data.get(rowNum).add(sc.next());
+
+            }
+            this.printData();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Scanner;
+import java.util.Vector;
+
+
+enum DataTypes
+{
+    INT("INT"),
+    DOUBLE("DOUBLE"),
+    STRING ("VARCHAR(255)");
+    String dataTypeName;
+
+    DataTypes(String s)
+    {
+        dataTypeName = s;
+    }
+};
+
+public class Table
+{
+    String fileName = "";
+    Vector<Vector<String>> data = new Vector<Vector<String>>();
+    Vector<String> headers = new Vector<String>();
+    ArrayList<DataTypes> dataTypeArray = new ArrayList<>();
+
+    /**********************************************************************
+     * readFile
+     * reads csv file into "data" vector inside object
+     * @param path         file path for csv input file
+     *********************************************************************/
+
+    public void readFile(String path)
+    {
+        String line = "";
+        Scanner sc = null;
+        File inFile = null;
+        int index = 0;
+
+        try
+        {
+            inFile = new File(path);
+            sc = new Scanner(inFile, findCharSet(inFile));
+        }
+        catch (FileNotFoundException e)
+        {
+            System.out.println("file not found");
+            e.printStackTrace();
+        }
+
+        this.fileName = inFile.getName();
+        this.fileName = this.fileName.replaceAll("(?<!^)[.].*", ""); // remove extension for table name
+
+        while (sc.hasNextLine())   //populate data
+        {
+            line = sc.nextLine();
+            String[] strArr = line.split( ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1); // separating commas only
+            strArr = removeSpacesNum(strArr);
+            data.add(new Vector<>());
+            data.get(index).addAll(Arrays.asList(strArr));
+            index++;
+        }
+
+        this.populateDataTypes();
+        this.populateHeaders();
+    }
+
+    /****************************************************************************
+     * removeSpacesNums
+     * removes spaces and " from numbers currently stored as a string
+     * @param strArr      Array of string containing mixture of numbers and words
+     * @return strArr     Array with spaces and " removed from numbers
+     ****************************************************************************/
+    public String[] removeSpacesNum(String[] strArr)
+    {
+        for (int x = 0; x < strArr.length; x++)
+        {
+            //   System.out.println("remove space ");
+            if ( (!strArr[x].matches(".*[A-Za-z].*"))) // doesn't contain any letters .: probably number
+            {
+                strArr[x] = strArr[x].replace("^0-9.", ""); ///changed this
+                System.out.println("remove space = " + strArr[x]);
+            }
+        }
+        return strArr;
+    }
+
+    /**************************************************************************
+     * findCharSet
+     * Find encoding for csv file. I don't like this and it needs work... but works...
+     * @param inFile                open inFile
+     * @return string with encoding type
+     **************************************************************************/
+
+    public String findCharSet(File inFile)
+    {
+        Scanner sc = null;
+        String[] charSetTypes = new String[]{"US-ASCII", "UTF-8", "CP1252", "UTF-16", "CP1252", "US-ASCII"};
+        String charSet = "CP1252";
+
+        for (int x = 0; x < charSetTypes.length; x++)
+        {
+            sc = findCharSetHelper(inFile, charSetTypes[x]);
+            if (sc != null)
+            {
+                if (sc.hasNextLine())
+                {
+                    charSet = charSetTypes[x];
+                    System.out.println(charSet);
+                    break;
+                }
+            }
+        }
+
+        return charSet;
+    }
+
+    /**************************************************************************
+     * findCharSetHelper
+     * To avoid try block
+     * @param inFile                open inFile
+     * @return string with encoding type
+     **************************************************************************/
+    Scanner findCharSetHelper(File inFile, String charSet)
+    {
+        Scanner sc = null;
+        try
+        {
+            sc = new Scanner(inFile, charSet);
+            sc.hasNextLine();
+        } catch (FileNotFoundException e)
+        {
+            System.out.println("helper error");
+            //      e.printStackTrace();
+            return null;
+        }
+        return sc;
+    }
+
+    /*********************************************************
+     * printName
+     * prints filename for testing purposes
+     **********************************************************/
+    public void printName()
+    {
+        System.out.println("print name :" + fileName);
+    }
+
+    /*********************************************************
+     * printData
+     * prints data for testing purposes
+     **********************************************************/
+    public void printData()
+    {
+        System.out.println(this.fileName);
+
+        for (int y = 0; y < data.size(); y++)
+        {
+            for (int x = 0; x < data.get(y).size(); x++)
+            {
+                System.out.print(data.get(y).get(x) + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    /***************************************************************************
+     * uploadToServer
+     * uploads csv as table in mySql database;
+     *
+     ****************************************************************************/
+    public void uploadToServer()
+    {
+        String url = "jdbc:mysql://localhost:3306/mydb";
+        String username = "root";
+        String password = "SPIC3Ysausage";
+        Connection connection = null;
+        PreparedStatement insertStatement = null;
+
+
+        try
+        {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(url, username, password);
+            connection.setAutoCommit(false);
+
+            Statement createStatement = connection.createStatement();
+            createStatement.executeUpdate(getSQLCreateString());
+
+            for (int y = 0; y < data.size(); y++)                           //insert data into mySql prepared statement.
+            {
+                insertStatement = connection.prepareStatement(getSQLInsertString());
+                for (int x = 0; x < data.get(y).size(); x++)
+                {
+                    try
+                    {
+                        switch (dataTypeArray.get(x))                                  // convert to correct dataType
+                        {
+                            case INT:
+                                //     System.out.println("To int " + data.get(y).get(x));
+                                insertStatement.setInt(x + 1, Integer.parseInt(data.get(y).get(x)));
+                                break;
+                            case DOUBLE:
+                                //    System.out.println("To double " + data.get(y).get(x));
+                                insertStatement.setDouble(x + 1, Double.parseDouble(data.get(y).get(x)));
+                                break;
+                            case STRING:
+                                //   System.out.println("To string" + data.get(y).get(x));
+                                insertStatement.setString(x + 1, data.get(y).get(x));
+                                break;
+                        }
+                    } catch (Exception e)
+                    {
+                        insertStatement.setNull(x + 1, Types.NULL);
+                    }
+
+                }
+                //    System.out.println(insertStatement.toString());
+                insertStatement.addBatch();
+                insertStatement.executeBatch();
+            }
+
+            connection.commit();
+            connection.close();
+
+        } catch (SQLException e)
+        {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e)
+        {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    public void populateHeaders()
+    {
+        char ch = 'A';
+        if (this.checkForHeader())
+        {
+            for (int x = 0; x < data.get(0).size(); x++)
+            {
+                data.get(0).set(x, data.get(0).get(x).replaceAll("[^0-9,a-z,A-Z$_]", "_")); // Only valid characters for column name.
+                headers.add(data.get(0).get(x));
+            }
+            data.remove(0);
+
+        } else
+        {
+            for (int x = 0; x < data.get(0).size(); x++)
+            {
+                headers.add(Character.toString(ch));
+                ch++;
+            }
+        }
+    }
+
+    public boolean checkForHeader()
+    {
+        boolean header = false;
+        for (int x = 0; x < data.get(0).get(x).length(); x++)
+        {
+            if (calcDT(data.get(0).get(x)) != this.dataTypeArray.get(x))
+            {
+                header = true;
+                break;
+            }
+        }
+        return header;
+
+    }
+
+
+    void populateDataTypes()
+    {
+        for (int x = 0; x < data.get(1).size(); x++)
+        {
+            this.dataTypeArray.add(calcDT(data.get(1).get(x)));
+        }
+    }
+
+
+    DataTypes calcDT(String str)
+    {
+        DataTypes result = DataTypes.STRING;
+
+        if (str.matches("-?\\d+?")) // is int (I hate regex)
+        {
+            result = DataTypes.INT;
+        } else if (str.matches("-?\\d+(\\.\\d+)?")) // is double
+        {
+            result = DataTypes.DOUBLE;
+        } else if (str.length() == 1) // char
+        {
+            result = DataTypes.STRING;
+        } else //string
+        {
+            result = DataTypes.STRING;
+        }
+
+        return result;
+    }
+
+
+    /*************************************************************************
+     * strB.append("INSERT INTO username (Username, _Identifier, First_name, Last_name) VALUES (?,?,?,?);");
+     * @return
+     *******************************************************************************************************/
+    public String getSQLInsertString()
+    {
+        StringBuilder strB = new StringBuilder();
+
+        strB.append("INSERT INTO " + this.fileName + " (`");
+
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append(headers.get(x));
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append("` , `");
+            }
+        }
+
+        strB.append("` ) VALUES (");
+
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append("?");
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            }
+        }
+        strB.append(");\n");
+
+        System.out.println(strB.toString());
+
+        return strB.toString();
+
+    }
+
+    /************************************************************
+     *strB.append("CREATE TABLE username(Username VARCHAR(255),
+     *         _Identifier VARCHAR(255), First_name VARCHAR(255), Last_name VARCHAR(255));\n");
+     * @return
+     **************************************************************/
+    public String getSQLCreateString()
+    {
+        StringBuilder strB = new StringBuilder();
+
+        strB.append("CREATE TABLE `" + this.fileName + "` (");
+        for (int x = 0; x < data.get(0).size(); x++)
+        {
+            strB.append("`" + headers.get(x) + "` " + dataTypeArray.get(x).dataTypeName);// " ' " to ignore reserved words
+
+            if (data.get(0).size() != x + 1)
+            {
+                strB.append(", ");
+            } else
+            {
+                strB.append(");\n");
+            }
+        }
+        System.out.println(strB.toString());
+        return strB.toString();
+    }
+
+
+    void setDelim(String delim)
+    {
+        this.delim = delim;
+    }
+}
+// Bulk loading
+//
+// first byte position for encoding.
+//
+// byte array // substitution / library
+//
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+
+
+public class csvGUI
+{
+    private JButton Open;
+    private JButton Download;
+    private JButton Upload;
+    private JTextField textField1;
+    private JTextField TextField;
+    private JButton setDelimeterButton;
+    private JPanel guiPanel;
+    private JButton selectButton;
+    private JPanel printPanel;
+    private JTextField textField2;
+    private JButton saveButton;
+    private JTextField textField3;
+    private JComboBox comboBox1;
+    private JButton downloadButton;
+    private JButton selectFolderButton;
+
+    private Table tab;
+
+    public static void main(String[] args)
+    {
+        JFrame frame = new JFrame("csvGUI");
+        frame.setContentPane(new csvGUI().guiPanel);
+
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    public csvGUI()
+    {
+        Open.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                tab = new Table();
+                tab.readFile(textField1.getText());
+                printTable(tab);
+            }
+        });
+
+        Upload.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                tab.uploadToServer();
+            }
+        });
+
+        selectButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                final JFileChooser fc = new JFileChooser();
+                int returnVal = fc.showOpenDialog(selectButton);
+
+                File file = fc.getSelectedFile();
+                String path = file.getPath();
+                textField1.setText(path);
+            }
+        });
+        setDelimeterButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+        //        String delim = TextField.getText();
+                tab.setDelim(",");
+            }
+        });
+    }
+
+
+    public void printTable(Table ent)
+    {
+        JTable table = new JTable(tab.data, tab.headers);
+        table.setBounds(30, 40, 200, 300);
+        JScrollPane sp = new JScrollPane(table);
+
+        this.printPanel.removeAll();
+        this.printPanel.setLayout(new BoxLayout(this.printPanel, BoxLayout.PAGE_AXIS));
+        this.printPanel.setAlignmentX(Component.LEFT_ALIGNMENT);//0.0)
+        this.printPanel.add(sp);
+        this.printPanel.revalidate();
+   //     this.printPanel.repaint();
+
+    }
+}
